@@ -20,6 +20,7 @@
 #include "gpio.h"
 #include "tim.h"
 #include "usart.h"
+#include "CANTask.h"
 
 /* FreeRTOS includes. */
 // #include <queue.h>
@@ -103,20 +104,19 @@ int main(void) {
     MX_TIM3_Init();
     MX_TIM4_Init();
     MX_USART2_UART_Init();
+    MX_CAN_Init();
 
     /* Infinite loop */
-    // osKernelInitialize();
+    osKernelInitialize();
 
-    // Create the Blinky thread
-    osThreadDef(THREAD_1, BlinkyThread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
-
-    LEDThread1Handle = osThreadCreate(osThread(THREAD_1), NULL);
+    // Create CANTask
+    canTaskHandle = osThreadNew(StartCANTask, NULL, &CANTask_attributes);
 
     // Start the RTOS kernel
     osKernelStart();
 
     // This is a fake comment, delete
-    for (;;) {
+    while (1) {
         /* Should not reach here. */
     }
 
@@ -157,6 +157,37 @@ void SystemClock_Config(void) {
         while (1)
             ;
     }
+}
+
+/**
+  * @brief CAN Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CAN_Init(void) {
+    hcan.Instance = CAN;
+    hcan.Init.Prescaler = 18;
+    hcan.Init.Mode = CAN_MODE_NORMAL;
+    hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
+    hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
+    hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
+    hcan.Init.TimeTriggeredMode = DISABLE;
+    hcan.Init.AutoBusOff = DISABLE;
+    hcan.Init.AutoWakeUp = DISABLE;
+    hcan.Init.AutoRetransmission = DISABLE;
+    hcan.Init.ReceiveFifoLocked = DISABLE;
+    hcan.Init.TransmitFifoPriority = DISABLE;
+
+    if (HAL_CAN_Init(&hcan) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // CAN bus configuration
+    TxHeader.DLC = 8;
+    TxHeader.IDE = CAN_ID_STD;
+    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.StdId = 0x123;
+    TxHeader.TransmitGlobalTime = DISABLE;
 }
 
 /**
