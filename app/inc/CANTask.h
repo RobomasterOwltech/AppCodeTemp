@@ -12,17 +12,10 @@
 #include "main.h"
 #include "cmsis_os.h"
 
+#include "structs.h"
+
 #define PENDING_MESSAGES 1
 #define NO_PENDING_MESSAGES 0
-
-typedef struct {
-  uint8_t vMotor1;
-  uint8_t vMotor2;
-  uint8_t vMotor3;
-  uint8_t vMotor4;
-} MotorControlMessage;
-
-CAN_HandleTypeDef hcan;
 
 CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
@@ -52,7 +45,10 @@ void StartCANTask(void *argument) {
     if (hasPendingMessages) {
       // Send the message to the corresponding node or subsystem
       // TODO: Implement the logic to retrived data from the remote controller
-      MotorControlMessage TxData = {};
+      TxData.vMotor1 = RxData.vMotor1;
+      TxData.vMotor2 = RxData.vMotor2;
+      TxData.vMotor3 = RxData.vMotor3;
+      TxData.vMotor4 = RxData.vMotor4;
       HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox);
 
       // Reset the flag
@@ -60,12 +56,10 @@ void StartCANTask(void *argument) {
 
       // Report current data from the CAN bus
       // TODO: Implement the logic to retrieve data from the CAN bus nodes (chassis and gymbal)
-      MotorControlMessage TxData = {
-        .vMotor1 = RxData.vMotor1,
-        .vMotor2 = RxData.vMotor2,
-        .vMotor3 = RxData.vMotor3,
-        .vMotor4 = RxData.vMotor4,
-      };
+      TxData.vMotor1 = RxData.vMotor1;
+      TxData.vMotor2 = RxData.vMotor2;
+      TxData.vMotor3 = RxData.vMotor3;
+      TxData.vMotor4 = RxData.vMotor4;
       HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox);
     }
   }
