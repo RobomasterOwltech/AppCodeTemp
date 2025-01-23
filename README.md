@@ -1,6 +1,6 @@
 # AppCodeTemp
 Template to create FreeRTOS tasks using the team's middleware
-
+si esto me lo pidio el jorge
 -------------------------------------------------------------------
 
 ## How to use this repo:
