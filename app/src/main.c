@@ -110,7 +110,8 @@ int main(void) {
     osKernelInitialize();
 
     // Create CANTask
-    canTaskHandle = osThreadNew(StartCANTask, NULL, &CANTask_attributes);
+    canTaskHandle = osThreadNew(StartCANTxTask, NULL, &CANTxTask_attributes);
+    canTaskHandle = osThreadNew(StartCANRxTask, NULL, &CANRxTask_attributes);
 
     // Start the RTOS kernel
     osKernelStart();
@@ -188,6 +189,10 @@ static void MX_CAN_Init(void) {
     TxHeader.RTR = CAN_RTR_DATA;
     TxHeader.StdId = 0x123;
     TxHeader.TransmitGlobalTime = DISABLE;
+
+    HAL_CAN_Start(&hcan);
+    HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+    InitCANSemaphore();
 }
 
 /**
