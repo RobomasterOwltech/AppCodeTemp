@@ -27,17 +27,17 @@ Template to create FreeRTOS tasks using the team's middleware
         - For Linux: https://docs.docker.com/engine/install/
         - For Windows: https://docs.docker.com/desktop/setup/install/windows-install/
         - For MacOS: https://docs.docker.com/desktop/setup/install/mac-install/
-2. From the project root folder (AppCodeTemp) go to ".devcontainer": ```cd .devcontainer```
-3. Build the image: ```docker build .```
-4. List the images:  ```docker images```
+2. From the project root folder (AppCodeTemp) go to ".devcontainer": `cd .devcontainer`
+3. Build the image: `docker build .`
+4. List the images:  `docker images`
         - Identify the ID of the image just built
-5. Go to the project root folder (AppCodeTemp): ```cd ..```
-6. Run the container in detach mode:  ```docker run -d --mount type=bind,source=$(realpath ./),target=/home/myProjects <YOUR_IMAGE_ID>``` # Source is the absoluthe path to AppCodeTemp
+5. Go to the project root folder (AppCodeTemp): `cd ..`
+6. Run the container in detach mode:  `docker run -d --mount type=bind,source=$(realpath ./),target=/home/myProjects <YOUR_IMAGE_ID>` # Source is the absoluthe path to AppCodeTemp
 
 > All compilation steps need to be done form inside the container. To enter it:
-> 1. List containers: ```docker ps```
+> 1. List containers: `docker ps`
 >         - Identify the ID of the container
-> 2. Enter the container: ```docker run -it <CONTAINER_ID> bash```
+> 2. Enter the container: `docker run -it <CONTAINER_ID> bash`
 
 ## Compile:
 
