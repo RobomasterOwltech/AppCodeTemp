@@ -6,6 +6,7 @@ Template to create FreeRTOS tasks using the team's middleware
 ## How to use this repo:
 
 1. Clone it `git clone git@github.com:RobomasterOwltech/AppCodeTemp.git`
+2. Go into the newly generated directory `cd AppCodeTemp`
 1. Download the submodules `git submodule init && git submodule update`
 1. In case any of the dependencies needs to be updated, simply do: `git submodule update --remote`
 
@@ -22,7 +23,7 @@ Template to create FreeRTOS tasks using the team's middleware
 
 ## Compile:
 
-1. From the project folder call make 
+1. From the project root folder (AppCodeTemp) call make 
 
         make all
     1. You might need to specify the compiler path, in which case use:
