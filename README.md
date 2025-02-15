@@ -23,10 +23,10 @@ Template to create FreeRTOS tasks using the team's middleware
 
 ## Create the container
 
-1. Download docker:
-        - For Linux: https://docs.docker.com/engine/install/
-        - For Windows: https://docs.docker.com/desktop/setup/install/windows-install/
-        - For MacOS: https://docs.docker.com/desktop/setup/install/mac-install/
+1. Download docker:  
+        - For Linux: https://docs.docker.com/engine/install/  
+        - For Windows: https://docs.docker.com/desktop/setup/install/windows-install/  
+        - For MacOS: https://docs.docker.com/desktop/setup/install/mac-install/  
 2. From the project root folder (AppCodeTemp) go to ".devcontainer": `cd .devcontainer`
 3. Build the image: `docker build .`
 4. List the images:  `docker images`
