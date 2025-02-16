@@ -111,7 +111,12 @@ int main(void) {
     osThreadDef(THREAD_1, BlinkyThread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
 
     LEDThread1Handle = osThreadCreate(osThread(THREAD_1), NULL);
+    //esta parte para mandar a llamar al semaforo que esta guardado
+    I2C_semaphore = osSemaphoreNew(1, 0, NULL);
 
+ osKernelInitialize();
+ osThreadNew(Task1, NULL, NULL);
+ osKernelStart();
     // Start the RTOS kernel
     osKernelStart();
 

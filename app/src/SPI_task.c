@@ -60,8 +60,8 @@ int main(void) {
     I2C_semaphore = osSemaphoreNew(1, 0, NULL);
 
     osKernelInitialize();
-    osThreadNew(Task1, NULL, NULL);
-    osKernelStart();
+    task1Handle = osThreadNew(Task1, NULL, NULL); //actualiazado a   freertos cmsis v2
+    osKernelStart();  // Inicia el planificador de tareas
 
    //aqui la repeticion de spi
     while (1) {

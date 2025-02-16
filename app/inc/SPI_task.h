@@ -3,8 +3,9 @@
 //esta llamada no existe pero cuando me mezcle por la branch puede que no haya problema
 
 
-float vel_x, float vel_y, float vel_z;
-float acce_x,float acce_y,float acce_z;
+float vel_x, float vel_y, float vel_z; //velocidad variables
+float acce_x,float acce_y,float acce_z; //aceleracion variables
+float gir_x, float gir_y, float gir_z; //giroscopio variable
 
 
 //---------------------------------------------------------------
@@ -30,20 +31,20 @@ int16_t INU_ReadResgister16(uinit8_t reg);
 void ProcesarDatos(){
 
 //leer datos del acelerometro
-int16_t ax= IMU_ReadREegister16(0x3B); //Eje X
+int16_t acce_x= IMU_ReadREegister16(0x3B); //Eje X
 int16_t ay= IMU_ReadREegister16(0x3D); //Eje y
 int16_t az= IMU_ReadREegister16(0x3F); //Eje z
 
 //leer datos del giroscopio
-int16_t gx= IMU_ReadREegister16(0x43); //Eje X
-int16_t gy= IMU_ReadREegister16(0x45); //Eje y
-int16_t gz= IMU_ReadREegister16(0x47); //Eje z
+int16_t gir_x= IMU_ReadREegister16(0x43); //Eje X
+int16_t gir_y= IMU_ReadREegister16(0x45); //Eje y
+int16_t gir_z= IMU_ReadREegister16(0x47); //Eje z
 
 //convertir los datos a unidade fisicas
 float x1g= ax * (9.81f / 16384.0f);
 float y1g= ay * (9.81f / 16384.0f);
 float z1g= az * (9.81f / 16384.0f);
-
+//quedan pendiente de asignacion para su uso 
 float x2g= gx * (9.81f / 16384.0f);
 float y2g= gy * (9.81f / 16384.0f);
 float z2g= gz * (9.81f / 16384.0f);
