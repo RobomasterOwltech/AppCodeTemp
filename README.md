@@ -37,7 +37,7 @@ Template to create FreeRTOS tasks using the team's middleware
 > All compilation steps need to be done form inside the container. To enter it:
 > 1. List containers: `docker ps`
 >         - Identify the ID of the container
-> 2. Enter the container: `docker run -it <CONTAINER_ID> bash`
+> 2. Enter the container: `docker exec -it <CONTAINER_ID> bash`
 
 ## Compile:
 
