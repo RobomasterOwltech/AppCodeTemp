@@ -64,23 +64,11 @@ uint32_t TxMailbox;
 
 SemaphoreHandle_t xCANSemaphore;
 
-osThreadId* CANTxTaskHandle;
-osThreadId* CANRxTaskHandle;
-
-const osThreadAttr_t CANTask_attributes = {
-    .name = "CANTxTask",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
-};
-
-const osThreadAttr_t CANTask_attributes = {
-    .name = "CANRxTask",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
-};
-
 void StartCANTxTask(void* argument);
 void StartCANRxTask(void* argument);
+
+osThreadDef(StartCANTxTask, osPriorityNormal, 3, 0, 128 * 4);
+osThreadDef(StartCARRxTask, osPriorityNormal, 3, 0, 128 * 4);
 
 void StartCANTxTask(void* argument) {
     while (1) {
