@@ -24,56 +24,56 @@ extern "C" {
 // printed.
 // * CAN2_IRQHandler: An ISR is issued when an interrupt occurs for the USART2 peripheral.
 
+osSemaphoreId_t I2C_semaphore;
+I2C_HandleTypeDef hi2c1;
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c->State == HAL_I2C_STATE_READY) {
+        osSemaphoreRelease(I2C_semaphore);
+    }
+}
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c->State == HAL_I2C_STATE_READY) {
+        osSemaphoreRelease(I2C_semaphore);
+    }
+}
+
+static void Task1(void* argument) {
+    while (1) {
+        HAL_I2C_Master_Transmit_IT(&hi2c1, I2C_addr, write_data_array, sizeof(write_data_array));
+        osSemaphoreAcquire(I2C_semaphore, 100);
+        HAL_I2C_Master_Receive_IT(&hi2c1, I2C_addr, read_data_array, sizeof(read_data_array));
+        osSemaphoreAcquire(I2C_semaphore, 100);
+    }
+}
+
+osSemaphoreId_t I2C_semaphore;
+I2C_HandleTypeDef hi2c1;
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c->State == HAL_I2C_STATE_READY) {
+        osSemaphoreRelease(I2C_semaphore);
+    }
+}
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c->State == HAL_I2C_STATE_READY) {
+        osSemaphoreRelease(I2C_semaphore);
+    }
+}
+
+static void Task1(void* argument) {
+    while (1) {
+        HAL_I2C_Master_Transmit_IT(&hi2c1, I2C_addr, write_data_array, sizeof(write_data_array));
+        osSemaphoreAcquire(I2C_semaphore, 100);
+        HAL_I2C_Master_Receive_IT(&hi2c1, I2C_addr, read_data_array, sizeof(read_data_array));
+        osSemaphoreAcquire(I2C_semaphore, 100);
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* TemplateCFile_C */
-
-osSemaphoreId_t I2C_semaphore;
-I2C_HandleTypeDef hi2c1;
-
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
-    }
-}
-
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
-    }
-}
-
-static void Task1(void* argument) {
-    while (1) {
-        HAL_I2C_Master_Transmit_IT(&hi2c1, I2C_addr, write_data_array, sizeof(write_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-        HAL_I2C_Master_Receive_IT(&hi2c1, I2C_addr, read_data_array, sizeof(read_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-    }
-}
-
-osSemaphoreId_t I2C_semaphore;
-I2C_HandleTypeDef hi2c1;
-
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
-    }
-}
-
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
-    }
-}
-
-static void Task1(void* argument) {
-    while (1) {
-        HAL_I2C_Master_Transmit_IT(&hi2c1, I2C_addr, write_data_array, sizeof(write_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-        HAL_I2C_Master_Receive_IT(&hi2c1, I2C_addr, read_data_array, sizeof(read_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-    }
-}
