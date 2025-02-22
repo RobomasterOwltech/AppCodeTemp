@@ -1,7 +1,7 @@
 
 /**
  * CANTask.c
- * 
+ *
  * Created on: January 15, 2024
  *     Author: Erick Daniel Ortiz Cervantes
  */
@@ -11,20 +11,25 @@
 #include "main.h"
 
 /**
- * @brief Represents a subsystem within the CAN bus
+ * @brief Represents a CAN bus message splitted into the velocity
+ * in in each motor
+ *
+ * @param vMotorx: Value to set to the speed controller
  */
-typedef enum { GIMBALL, CHASSIS } Node;
+typedef struct {
+    uint8_t vMotor_FL;
+    uint8_t vMotor_FR;
+    uint8_t vMotor_BL;
+    uint8_t vMotor_BR;
+} ChassisControlMessage;
 
 /**
  * @brief Represents a CAN bus message
- * 
+ *
  * @param node: Node or subsystem where the message is sent to
  * @param vMotorx: Value to set to the speed controller
  */
 typedef struct {
-    Node node;
-    uint8_t vMotor1;
-    uint8_t vMotor2;
-    uint8_t vMotor3;
-    uint8_t vMotor4;
-} MotorControlMessage;
+    uint8_t vMotor_yaw;
+    uint8_t vMotor_pitch;
+} GimballControlMessage;
