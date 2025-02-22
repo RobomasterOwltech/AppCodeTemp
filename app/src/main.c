@@ -17,10 +17,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+#include "CANTask.h"
 #include "gpio.h"
 #include "tim.h"
 #include "usart.h"
-#include "CANTask.h"
 
 /* FreeRTOS includes. */
 // #include <queue.h>
@@ -48,6 +48,8 @@ void SystemClock_Config(void);
 typedef enum { THREAD_1 = 0, THREAD_2 } Thread_TypeDef;
 
 osThreadId LEDThread1Handle;
+osThreadId canTxHandle;
+osThreadId canRxHandle;
 
 static void BlinkyThread(void const* argument);
 
@@ -67,20 +69,6 @@ static void BlinkyThread(void const* argument) {
         osDelay(2000);                               // Delay for 500 milliseconds
     }
 }
-
-// static void exampleTask(void* parameters) __attribute__((noreturn));
-// static void exampleTask(void* parameters) {
-//     /* Unused parameters. */
-//     (void)parameters;
-
-//     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-
-//     for (;;) {
-//         /* Example Task Code */
-//         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-//         vTaskDelay(100); /* delay 100 ticks */
-//     }
-// }
 
 /* Private user code ---------------------------------------------------------*/
 
@@ -106,17 +94,19 @@ int main(void) {
     MX_USART2_UART_Init();
     MX_CAN_Init();
 
-    /* Infinite loop */
+    // Initialize the kernel
     osKernelInitialize();
 
     // Create CANTask
-    canTaskHandle = osThreadNew(StartCANTxTask, NULL, &CANTxTask_attributes);
-    canTaskHandle = osThreadNew(StartCANRxTask, NULL, &CANRxTask_attributes);
+    osThreadId CANTxTaskHandle;
+    osThreadId CANRxTaskHandle;
 
+    CANTxTaskHandle = osThreadCreate(osThread(Thread), NULL);
+    CANRxTaskHandle = osThreadCreate(osThread(Thread), NULL);
     // Start the RTOS kernel
     osKernelStart();
 
-    // This is a fake comment, delete
+    // Infinite loop
     while (1) {
         /* Should not reach here. */
     }
@@ -141,8 +131,7 @@ void SystemClock_Config(void) {
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         /* Initialization Error */
-        while (1)
-            ;
+        while (1);
     }
 
     /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
@@ -155,44 +144,8 @@ void SystemClock_Config(void) {
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
         /* Initialization Error */
-        while (1)
-            ;
+        while (1);
     }
-}
-
-/**
-  * @brief CAN Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CAN_Init(void) {
-    hcan.Instance = CAN;
-    hcan.Init.Prescaler = 18;
-    hcan.Init.Mode = CAN_MODE_NORMAL;
-    hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-    hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
-    hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-    hcan.Init.TimeTriggeredMode = DISABLE;
-    hcan.Init.AutoBusOff = DISABLE;
-    hcan.Init.AutoWakeUp = DISABLE;
-    hcan.Init.AutoRetransmission = DISABLE;
-    hcan.Init.ReceiveFifoLocked = DISABLE;
-    hcan.Init.TransmitFifoPriority = DISABLE;
-
-    if (HAL_CAN_Init(&hcan) != HAL_OK) {
-        Error_Handler();
-    }
-
-    // CAN bus configuration
-    TxHeader.DLC = 8;
-    TxHeader.IDE = CAN_ID_STD;
-    TxHeader.RTR = CAN_RTR_DATA;
-    TxHeader.StdId = 0x123;
-    TxHeader.TransmitGlobalTime = DISABLE;
-
-    HAL_CAN_Start(&hcan);
-    HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-    InitCANSemaphore();
 }
 
 /**
