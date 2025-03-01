@@ -1,6 +1,7 @@
 #include "cmsis_os.h"
 #include "spi.h"
 
+extern SPI_HandleTypeDef hspi2; //esta en el archivo de spi
 
 typedef struct {
     SPI_HandleTypeDef* spiHandle; 
@@ -39,17 +40,28 @@ int16_t INU_ReadResgister16(uint8_t reg);
 //a lo que invesige el metodo de conseguir los datos 
 void ReadData(float *x1, float *y1, float *z1, 
     float *x2, float *y2, float *z2) {
-//si falla lo de 0x02 probar poner command que esta declarado arriba
 
+
+
+//correccion de las cosas del buffer
 uint8_t command = 0x02;
-SPI_Transfer(&hspi2, 0x02); //aqui dice ques no esta definido
+uint8_t buffer[40];
+
+// Enviar comando
+uint8_t txData = 0x02;
+uint8_t rxData;
+HAL_SPI_TransmitReceive(&hspi2, &txData, &rxData, 1, HAL_MAX_DELAY);
+
+// Leer 40 bytes de datos
 for (int i = 0; i < 40; i++) {
-buffer[i] = SPI_Transfer(&hspi2, 0x00);
+    txData = 0x00;  // Enviar datos vacíos para recibir respuesta
+    HAL_SPI_TransmitReceive(&hspi2, &txData, &buffer[i], 1, HAL_MAX_DELAY);
 }
-*x1 = *((float*)&buffer[0]);
-*y1 = *((float*)&buffer[4]);
-*z1 = *((float*)&buffer[8]);
-*x2 = *((float*)&buffer[12]);
-*y2 = *((float*)&buffer[16]);
-*z2 = *((float*)&buffer[20]);
-}
+
+// Convertir los datos en valores float
+float *x1 = (float*)&buffer[0];
+float *y1 = (float*)&buffer[4];
+float *z1 = (float*)&buffer[8];
+float *x2 = (float*)&buffer[12];
+float *y2 = (float*)&buffer[16];
+float *z2 = (float*)&buffer[20];
