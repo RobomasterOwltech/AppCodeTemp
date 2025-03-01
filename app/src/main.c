@@ -26,8 +26,8 @@
 // #include <semphr.h>
 // #include <timers.h>
 // CMSIS Include
-#include "cmsis_os.h"
 #include "SPI_task.h"
+#include "cmsis_os.h"
 #include "spi.h"
 /* Standard includes. */
 #include <stdio.h>
@@ -44,7 +44,6 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-
 typedef enum { THREAD_1 = 0, THREAD_2 } Thread_TypeDef;
 
 osThreadId LEDThread1Handle;
@@ -52,7 +51,7 @@ osThreadId tid_thread1;
 osThreadId tid_thread2;
 osThreadId id1;
 
-osSemaphoreId semaphore;  // Semaphore ID
+osSemaphoreId semaphore;    // Semaphore ID
 osSemaphoreDef(semaphore);  // Semaphore definition
 
 void SystemClock_Config(void);
@@ -62,13 +61,8 @@ void thread2(void const* argument);
 
 /* Definición de la macro osThreadDef */
 #define osThreadDef(name, priority, instances, stacksz) \
-    const osThreadDef_t os_thread_def_##name = { \
-        .name = #name, \
-        .pthread = name, \
-        .tpriority = priority, \
-        .instances = instances, \
-        .stacksize = stacksz \
-    }
+    const osThreadDef_t os_thread_def_##name = {        \
+        .name = #name, .pthread = name, .tpriority = priority, .instances = instances, .stacksize = stacksz}
 
 /*-----------------------------------------------------------*/
 // osThreadId_t defaultTaskHandle;
@@ -109,13 +103,10 @@ static void BlinkyThread(void const* argument) {
  * @retval int
  */
 
-
-
-
- void thread1(void const* argument) {
+void thread1(void const* argument) {
     int32_t value;
     while (1) {
-        osDelay(3);  // Pass control to other tasks for 3ms
+        osDelay(3);                             // Pass control to other tasks for 3ms
         value = osSemaphoreWait(semaphore, 1);  // Wait 1ms for the free semaphore
         if (value > 0) {
             // Si no hubo timeout, el semáforo fue adquirido
@@ -124,22 +115,21 @@ static void BlinkyThread(void const* argument) {
         }
     }
 }
-    
-  
-      // thread 2 - Normal Priority - looks for a free semaphore and uses the resource whenever it is available
-   
+
+// thread 2 - Normal Priority - looks for a free semaphore and uses the resource whenever it is available
+
 void thread2(void const* argument) {
     while (1) {
-      osSemaphoreWait(semaphore, osWaitForever);  // Esperar indefinidamente por el semáforo
-            // Usar el recurso aquí
+        osSemaphoreWait(semaphore, osWaitForever);  // Esperar indefinidamente por el semáforo
+                                                    // Usar el recurso aquí
         osSemaphoreRelease(semaphore);  // Liberar el semáforo
-        }
     }
+}
 
-/*osThreadDef(thread1, osPriorityHigh, 1, 128);
-osThreadDef(thread2, osPriorityNormal, 1, 128);*/
+/* Definición de los hilos */
+osThreadDef(thread1, osPriorityHigh, 1, 128);
+osThreadDef(thread2, osPriorityNormal, 1, 128);
 osThreadDef(Task1, osPriorityNormal, 1, 128);
-
 
 int main(void) {
     /* MCU Configuration--------------------------------------------------------*/
@@ -157,11 +147,11 @@ int main(void) {
     MX_TIM3_Init();
     MX_TIM4_Init();
     MX_USART2_UART_Init();
-    MX_SPI1_Init(); //lo copie directo spi.c esta declarado como una funcion ahi pero dice que no esta definida
-    
-    osKernelInitialize(); 
+    MX_SPI1_Init();  // lo copie directo spi.c esta declarado como una funcion ahi pero dice que no esta definida
+
+    osKernelInitialize();
     semaphore = osSemaphoreCreate(osSemaphore(semaphore), 1);
-   
+
     SPI_Config();
 
     /*Crear los hilos */
@@ -174,7 +164,6 @@ int main(void) {
     for (;;) {
         /* Should not reach here. */
     }
-
 
     return 0;
 }
@@ -196,8 +185,8 @@ void SystemClock_Config(void) {
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         /* Initialization Error */
-        while (1){}
-            ;
+        while (1) {
+        };
     }
 
     /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
@@ -210,8 +199,8 @@ void SystemClock_Config(void) {
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
         /* Initialization Error */
-        while (1){}
-            ;
+        while (1) {
+        };
     }
 }
 

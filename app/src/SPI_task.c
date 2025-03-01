@@ -1,74 +1,70 @@
-#include "main.h"
-#include "robotconfig.h"
 #include "SPI_task.h"
 
+#include <cmsis_os.h>
 
-SPI_Config SPI1_Config = {
-    .spiHandle = &hspi1,
-    .csPort = SPI1_CS_PORT,
-    .csPin = SPI1_CS_PIN
-};
+#include "main.h"
+#ifndef __SPI_task.c__
+    #define __SPI_task .c__
+    #ifdef __cplusplus
+extern "C" {
+    #endif
 
-// Inicia SPI
-void SPI_Init(SPI_Config* config) {
-    HAL_GPIO_WritePin(config->csPort, config->csPin, GPIO_PIN_SET); 
+buffer_spi[5];  // esta en bytes
+// es un array para guardar los datos del acelerometro y giroscopio en memoria
+
+SPI_Config SPI1_Config = {.spiHandle = &hspi2, .csPort = SPI1_CS_GPIO_Port, .csPin = SPI1_CS_Pin};
+
+// funcion para leer un registro de 16 bits
+uint16_t todos_addres() {
+    for (int i = 0; i < 128; i++) {
+        uint16_t data = IMU_ReadRegister8(i);
+        if (data != 0) {
+            printf("0x%02X: 0x%02X\n", i, data);
+        }
+    }
 }
 
-// envia y recibe
-uint8_t SPI_Transfer(SPI_Config* config, uint8_t data) {
-    uint8_t receivedData;
-    HAL_GPIO_WritePin(config->csPort, config->csPin, GPIO_PIN_RESET); 
-    HAL_SPI_TransmitReceive(config->spiHandle, &data, &receivedData, 1, HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(config->csPort, config->csPin, GPIO_PIN_SET);  
-    return receivedData;
+// las cosas del semaforo
+osSemaphoreId I2C_semaphore;    // define el semaforo
+osSemaphoreDef(I2C_semaphore);  // define la estructura del semaforo
+
+void initSemaphore(void) {
+    I2C_semaphore = osSemaphoreCreate(osSemaphore(I2C_semaphore), 1);  // Crear semáforo con 1 permiso
+    if (I2C_semaphore == NULL) {
+    }
 }
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-    if(hi2c->State == HAL_I2C_STATE_READY)
-    {
+
+I2C_HandleTypeDef hi2c1;
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c->State == HAL_I2C_STATE_READY) {
         osSemaphoreRelease(I2C_semaphore);
     }
 }
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-    if(hi2c->State == HAL_I2C_STATE_READY)
-    {
-        osSemaphoreRelease(I2C_semaphore);
-    }
+
+void ProcesarDatos() {
+    // leer datos del acelerometro
+    int16_t ax = IMU_ReadRegister16(0x3B);  // Eje X
+    int16_t ay = IMU_ReadRegister16(0x3D);  // Eje y
+    int16_t az = IMU_ReadRegister16(0x3F);  // Eje z
+
+    // leer datos del giroscopio
+    int16_t gx = IMU_ReadRegister16(0x43);  // Eje X
+    int16_t gy = IMU_ReadRegister16(0x45);  // Eje y
+    int16_t gz = IMU_ReadRegister16(0x47);  // Eje z
+
+    // convertir los datos a unidade fisicas
+    float x1g = ax * (9.81f / 16384.0f);
+    float y1g = ay * (9.81f / 16384.0f);
+    float z1g = az * (9.81f / 16384.0f);
+    // quedan pendiente de asignacion para su uso
+    float x2g = gx * (9.81f / 16384.0f);
+    float y2g = gy * (9.81f / 16384.0f);
+    float z2g = gz * (9.81f / 16384.0f);
 }
-static void Task1(void *argument)
-{
-    while(1)
-    {
-        HAL_I2C_Master_Transmit_IT(&hi2c1, I2C_addr, write_data_array, sizeof(write_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-        HAL_I2C_Master_Receive_IT(&hi2c1, I2C_addr, read_data_array, sizeof(read_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-    }
+
+    #ifdef __cplusplus
 }
+    #endif
 
-
-int main(void) {
-    HAL_Init();
-    tim(); 
-    MX_GPIO_Init();
-    MX_SPI1_Init();
-
-    
-    SPI_Init(&SPI1_Config);
-    //esta parte para mandar a llamar al semaforo que esta guardado
-    I2C_semaphore = osSemaphoreNew(1, 0, NULL);
-
-    osKernelInitialize();
-    task1Handle = osThreadNew(Task1, NULL, NULL); //actualiazado a   freertos cmsis v2
-    osKernelStart();  // Inicia el planificador de tareas
-
-   //aqui la repeticion de spi
-    while (1) {
-    
-        uint8_t command = 0x01; 
-        uint8_t response = SPI_Transfer(&SPI1_Config, command);
-
-        HAL_Delay(1000);
-    }
-}
+#endif /* __SPI_task.h__ */
