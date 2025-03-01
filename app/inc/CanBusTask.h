@@ -11,6 +11,7 @@
 
 #include "CommunicationStructs.h"
 #include "RobomasterCanProtocol.h"
+#include "can.h"
 #include "cmsis_os.h"
 #include "main.h"
 #include "semphr.h"
@@ -25,29 +26,36 @@
 // Tho, the supported baud rate is 1000 kbps
 #define CAN_BITRATE
 #define CAN_BAUDRATE
+
+#define CAN_TIMEOUT_MS 5
+// https://arm-software.github.io/CMSIS_5/RTOS/html/group__CMSIS__RTOS__SemaphoreMgmt.html
+
 // Each motor sends it's info 1 KHz
 
+// Can filter example
+// https://schulz-m.github.io/2017/03/23/stm32-can-id-filter/
 // On GNU arm you can't use __attribute__((__packed))
 // See https://www.gnu.org/software/c-intro-and-ref/manual/html_node/Packed-Structures.html
 
-#pragma pack(1)
-typedef struct {
-    uint8_t SOF : 1;
-    uint16_t ID : 11;
-    uint8_t RTR : 1;
-    uint8_t Reserved : 1;
-    uint8_t DLC : 4;
-} beginCANFrame;
+#pragma pack(push, 1)
+    typedef struct {
 
-#pragma pack(1)
-typedef struct {
-    // TODO: Check what is CRC_TypeDef
-    uint16_t CRC_ : 15;
-    uint8_t CRCDeliter : 1;
-    uint8_t Ack : 1;
-    uint8_t AckDelimiter : 1;
-    uint8_t EOF : 7;
-} endCANFrame;
+        uint8_t SOF : 1;
+        uint16_t ID : 11;
+        uint8_t RTR : 1;
+        uint8_t Reserved : 1;
+        uint8_t DLC : 4;
+    } beginCANFrame;
+
+    typedef struct {
+        // TODO: Check what is CRC_TypeDef
+        uint16_t CRC_ : 15;
+        uint8_t CRCDeliter : 1;
+        uint8_t Ack : 1;
+        uint8_t AckDelimiter : 1;
+        uint8_t EOF : 7;
+    } endCANFrame;
+#pragma pack(pop)
 
 static uint8_t CANframeLength = sizeof(beginCANFrame) + (RM_DLC) * 8 + sizeof(endCANFrame);
 
@@ -57,69 +65,27 @@ static uint8_t CANframeLength = sizeof(beginCANFrame) + (RM_DLC) * 8 + sizeof(en
 // Communication structs
 // =======================================================
 
-ChassisControlMessage TxData;
-ChassisControlMessage RxData;
-
-uint32_t TxMailbox;
-
-SemaphoreHandle_t xCANSemaphore;
-
 void StartCANTxTask(void* argument);
 void StartCANRxTask(void* argument);
+
+extern osPoolId can_rx_mpool;
+extern osPoolId can_tx_mpool;
+
+extern osMessageQId outputQueueChassis; 
+extern osMessageQId inputQueueChassis; 
+
+
 
 osThreadDef(StartCANTxTask, osPriorityNormal, 3, 0, 128 * 4);
 osThreadDef(StartCARRxTask, osPriorityNormal, 3, 0, 128 * 4);
 
-void StartCANTxTask(void* argument) {
-    while (1) {
-        // TODO: Implement TX logic
-    }
-}
+void StartCANRxTask(void* argument);
 
-void StartCANRxTask(void* argument) {
-    while (1) {
-        if (osSemaphoreAcquire(xCANSemaphore, osWaitForever) == osOK) {
-            // Send the message to the corresponding node or subsystem
-            // TODO: Implement the logic to retrieved data from the remote controller
-            TxData.vMotor_FL = RxData.vMotor_FL;
-            TxData.vMotor_FR = RxData.vMotor_FR;
-            TxData.vMotor_BL = RxData.vMotor_BL;
-            TxData.vMotor_BR = RxData.vMotor_BR;
-            osSemaphoreAcquire(xCANSemaphore, osWaitForever);
-            HAL_CAN_AddTxMessage(&hcan, &TxHeaderCan, TxData, &TxMailbox);
+void StartCANTxTask(void* argument);
 
-            osDelay(100);
-        }
-    }
-}
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan);
 
-void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan) {
-    if (hcan->State == HAL_CAN_STATE_READY) {
-        osSemaphoreRelease(xCANSemaphore);
-    }
-}
-
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
-    if (hcan->State == HAL_CAN_STATE_READY) {
-        if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeaderCan, (uint8_t*)&RxData) != HAL_OK) {
-            // Handle error
-            /* Proposal:
-             * 1. Print an error message through the USART2 peripheral (connects to the ST-Link hence the computer)
-             * 2. Turn on a LED, preferably the red one (LD2) to indicate an error
-             */
-        }
-
-        osSemaphoreRelease(xCANSemaphore);
-    }
-}
-
-void InitCANSemaphore(void) {
-    xCANSemaphore = xSemaphoreCreateBinary();
-
-    if (xCANSemaphore == NULL) {
-        /* Handle error */
-    }
-}
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan);
 
 // =======================================================
 // STREAM BUFFER --- nOT USED FOR NOW
