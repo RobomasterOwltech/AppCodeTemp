@@ -22,53 +22,132 @@ extern "C" {
 // * canActionTask: This function initializes USART2 and associated hardware, starts a reception, and waits for
 // completion (with a deadline of 100 ms). The complete message is either printed or a timeout occurs and an error is
 // printed.
-// * CAN2_IRQHandler: An ISR is issued when an interrupt occurs for the USART2 peripheral.
+// * CAN2_IRQHandler: An ISR is issued when an interrupt occurs for the USART2 peripheral
+// ChassisControlMessage* canMsgSend;
+// ChassisControlMessage* canMsgRecd;
 
-osSemaphoreId_t I2C_semaphore;
-I2C_HandleTypeDef hi2c1;
+struct ChassisControlMessage canMsgSend, canMsgRecd;
 
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
-    }
-}
+uint32_t TxMailbox;
 
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
-    }
-}
+osSemaphoreId xCANsem;  // Semaphore ID
+osSemaphoreDef(xCANsem);
 
-static void Task1(void* argument) {
+// Queues:}
+    // TODO: set size other than 16?
+osPoolId  can_rx_mpool;
+osPoolDef(can_rx_mpool, 16, ChassisControlMessage);                    // Define memory pool
+osMessageQId  outputQueue; 
+osMessageQDef(outputQueue, 16, &ChassisControlMessage);              // Define message queue
+
+osPoolId  can_tx_mpool;
+osPoolDef(can_tx_mpool, 16, ChassisControlMessage);                    // Define memory pool
+osMessageQId  inputQueue; 
+osMessageQDef(inputQueue, 16, &ChassisControlMessage);    
+
+void StartCANTxTask(void* argument) {
     while (1) {
-        HAL_I2C_Master_Transmit_IT(&hi2c1, I2C_addr, write_data_array, sizeof(write_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-        HAL_I2C_Master_Receive_IT(&hi2c1, I2C_addr, read_data_array, sizeof(read_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
+        // TODO: Implement TX logic
     }
 }
 
-osSemaphoreId_t I2C_semaphore;
-I2C_HandleTypeDef hi2c1;
+void StartCANRxTask(void* argument) {
+    
+    
+    if (osSemaphoreWait(xCANsem, CAN_TIMEOUT_MS) == osOK) {
+        // Send the message to the corresponding node or subsystem
+        // TODO: Implement the logic to retrieved data from the remote controller
+        // THIS IS TRANSMISSION
 
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
+        ChassisControlMessage  *rptr;
+        osEvent  evt;
+        evt = osMessageGet(inputQueue, osWaitForever);  // wait for message
+        if (evt.status == osEventMessage) {
+            rptr = evt.value.p;
+            printf ("\nVoltage: %.2f V\n", rptr->voltage);
+            printf ("Current: %.2f A\n", rptr->current);
+            printf ("Number of cycles: %d\n", rptr->counter);
+            osPoolFree(mpool, rptr);                  // free memory allocated for message
+        }
+        canMsgSend = osPoolAlloc(can_mpool);                     // Allocate memory for the message
+        canMsgSend->vMotor_FL = 80; // Allocate memory for the message
+        canMsgSend->vMotor_FR = 22;                        // Set the message content
+        canMsgSend->vMotor_BL = 17;
+        canMsgSend->vMotor_BR = 120;
+        osMessagePut(MsgBox, (uint32_t)mptr, osWaitForever);  // Send Message
+
+        HAL_CAN_AddTxMessage(&hcan, &TxHeaderCan, TxData, &TxMailbox);
+        //remember to use from isr functions 
+        // TODO: is the delay really necessary? shouldn't the semaphore wait that time?
+        osDelay(100);
+    }
+    
+}
+void CAN1_RX0_IRQHandler(void)
+{
+    // Check if a message is pending in FIFO0
+    if (__HAL_CAN_GET_IT_SOURCE(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING))
+    {
+        CAN_RxHeaderTypeDef RxHeader;
+        uint8_t RxData[8];  // Adjust size based on your data length
+
+        if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
+        {
+            // Process the received message
+        }
     }
 }
 
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
-    if (hi2c->State == HAL_I2C_STATE_READY) {
-        osSemaphoreRelease(I2C_semaphore);
+// TODO: Define size
+uint8_t tempBuffer[8];
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
+    // TODO: define if this callback is the same for all CAN handlers
+    //  If so, accommodate for the second one
+    if (hcan->State == HAL_CAN_STATE_READY) {
+        if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, RxHeaderCan, tempBuffer) != HAL_OK) {
+            // Handle error
+
+
+
+            /* Proposal:
+             * 1. Print an error message through the USART2 peripheral (connects to the ST-Link hence the computer)
+             * 2. Turn on a LED, preferably the red one (LD2) to indicate an error
+             */
+        }
+        // Transform recieved message and push it to the other tasks
+            // TODO: When inserting a new element into the queue, is done by value, so everything is copied
+        memcpy(&myStruct, data, sizeof(myStruct));
+        
+        osSemaphoreRelease(xCANsem);
     }
 }
 
-static void Task1(void* argument) {
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan) {
+    if (hcan->State == HAL_CAN_STATE_READY) {
+        osSemaphoreRelease(xCANsem);
+    }
+}
+
+// TODO: use preprocesor directives to enable/disable the second CAN bus
+static void canBusTask(void* argument) {
+    xCANsem = xSemaphoreCreateBinary();
+
+    can_rx_mpool = osPoolCreate(osPool(can_rx_mpool));   
+    outputQueue = osMessageCreate(osMessageQ(outputQueue), NULL);  // create msg queue   
+    
+    can_tx_mpool = osPoolCreate(osPool(can_tx_mpool));   
+    outputQueue = osMessageCreate(osMessageQ(outputQueue), NULL);  // create msg queue   
+
+
+    // We are missing the queue to listen and publish to the other tasks
+
+    if (xCANsem == NULL) {
+        /* Handle semaphore initialization error */
+    }
+
     while (1) {
-        HAL_I2C_Master_Transmit_IT(&hi2c1, I2C_addr, write_data_array, sizeof(write_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
-        HAL_I2C_Master_Receive_IT(&hi2c1, I2C_addr, read_data_array, sizeof(read_data_array));
-        osSemaphoreAcquire(I2C_semaphore, 100);
+        HAL_CAN_TxMailbox0CompleteCallback();
+        StartCANRxTask();
     }
 }
 
