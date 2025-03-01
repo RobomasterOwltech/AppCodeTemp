@@ -33,3 +33,11 @@ typedef struct {
     uint8_t vMotor_yaw;
     uint8_t vMotor_pitch;
 } GimballControlMessage;
+
+
+// Message queues from protocols 
+extern osPoolId can_rx_mpool;
+extern osPoolId can_tx_mpool;
+
+extern osMessageQId outputQueueChassis; 
+extern osMessageQId inputQueueChassis; 
