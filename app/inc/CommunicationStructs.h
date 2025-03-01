@@ -9,6 +9,7 @@
 #pragma once
 
 #include "main.h"
+#include "cmsis_os.h"
 
 /**
  * @brief Represents a CAN bus message splitted into the velocity
