@@ -43,13 +43,32 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
+
 
 typedef enum { THREAD_1 = 0, THREAD_2 } Thread_TypeDef;
 
 osThreadId LEDThread1Handle;
+osThreadId tid_thread1;
+osThreadId tid_thread2;
+osThreadId id1;
 
+osSemaphoreId semaphore;  // Semaphore ID
+osSemaphoreDef(semaphore);  // Semaphore definition
+
+void SystemClock_Config(void);
 static void BlinkyThread(void const* argument);
+void thread1(void const* argument);
+void thread2(void const* argument);
+
+/* Definición de la macro osThreadDef */
+#define osThreadDef(name, priority, instances, stacksz) \
+    const osThreadDef_t os_thread_def_##name = { \
+        .name = #name, \
+        .pthread = name, \
+        .tpriority = priority, \
+        .instances = instances, \
+        .stacksize = stacksz \
+    }
 
 /*-----------------------------------------------------------*/
 // osThreadId_t defaultTaskHandle;
@@ -60,6 +79,7 @@ static void BlinkyThread(void const* argument);
 // };
 // void BlinkyThread(void* argument);
 /*-----------------------------------------------------------*/
+
 static void BlinkyThread(void const* argument) {
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     while (1) {
@@ -88,45 +108,39 @@ static void BlinkyThread(void const* argument) {
  * @brief  The application entry point.
  * @retval int
  */
-//la inilizacion del semaforo
-osThreadId tid_thread1;                          // ID for thread 1
-osThreadId tid_thread2;                          // ID for thread 2
-  
-osSemaphoreId semaphore;                         // Semaphore ID
-osSemaphoreDef(semaphore);                       // Semaphore definition
-void thread1 (void const *argument) {
+
+
+
+
+ void thread1(void const* argument) {
     int32_t value;
     while (1) {
-      osDelay(3);                                  // Pass control to other tasks for 3ms
-      value = osSemaphoreWait(semaphore, 1);// Wait 1ms for the free semaphore
-      if (value > 0) {
-                                                   // If there was no time-out the semaphore was acquired
-                                               // OK, the interface is free now, use it.
-        osSemaphoreRelease (semaphore);            // Return a token back to a semaphore
-      }
+        osDelay(3);  // Pass control to other tasks for 3ms
+        value = osSemaphoreWait(semaphore, 1);  // Wait 1ms for the free semaphore
+        if (value > 0) {
+            // Si no hubo timeout, el semáforo fue adquirido
+            // Usar el recurso aquí
+            osSemaphoreRelease(semaphore);  // Liberar el semáforo
+        }
     }
-  }
+}
     
-  /*
-       Thread 2 - Normal Priority - looks for a free semaphore and uses
-                                    the resource whenever it is available
-   */
-  void thread2 (void const *argument) {
+  
+      // thread 2 - Normal Priority - looks for a free semaphore and uses the resource whenever it is available
+   
+void thread2(void const* argument) {
     while (1) {
-      osSemaphoreWait (semaphore, osWaitForever);  // Wait indefinitely for a free semaphore
-                                                   // OK, the interface is free now, use it.
-      
-      osSemaphoreRelease (semaphore);              // Return a token back to a semaphore.
+      osSemaphoreWait(semaphore, osWaitForever);  // Esperar indefinidamente por el semáforo
+            // Usar el recurso aquí
+        osSemaphoreRelease(semaphore);  // Liberar el semáforo
+        }
     }
-  }
-    
-osThreadDef(thread1, osPriorityHigh,   1, 0);
-osThreadDef(thread2, osPriorityNormal, 1, 0);
-osThreadDef(Task1, osPriorityNormal, 1, 0); //la task 1 ya esta en el spi_task.c hecho 
+
+/*osThreadDef(thread1, osPriorityHigh, 1, 128);
+osThreadDef(thread2, osPriorityNormal, 1, 128);*/
+osThreadDef(Task1, osPriorityNormal, 1, 128);
 
 
-//Esta función se usa para definir tareas antes de crearlas. ya lo pase a la CMSIS-RTOS 1 pero sigue sin querer xd
- 
 int main(void) {
     /* MCU Configuration--------------------------------------------------------*/
 
@@ -145,21 +159,17 @@ int main(void) {
     MX_USART2_UART_Init();
     MX_SPI1_Init(); //lo copie directo spi.c esta declarado como una funcion ahi pero dice que no esta definida
     
-
-    /* Infinite loop */
-    // osKernelInitialize();
+    osKernelInitialize(); 
+    semaphore = osSemaphoreCreate(osSemaphore(semaphore), 1);
+   
     SPI_Config();
 
-    semaphore = osSemaphoreCreate(osSemaphore(semaphore), 1);
-     tid_thread1 = osThreadCreate(osThread(thread1), NULL);
-     tid_thread2 = osThreadCreate(osThread(thread2), NULL);
+    /*Crear los hilos */
+    tid_thread1 = osThreadCreate(osThread(thread1), NULL);
+    tid_thread2 = osThreadCreate(osThread(thread2), NULL);
+    osThreadId id1 = osThreadCreate(osThread(Task1), NULL);
 
- osKernelInitialize();
- 
-
- osThreadId id1 = osThreadCreate(osThread(Task1), NULL);
-
-osKernelStart();  // Iniciar el scheduler del RTOS v1
+    osKernelStart();  // Iniciar el scheduler del RTOS v1
     // This is a fake comment, delete
     for (;;) {
         /* Should not reach here. */
@@ -186,7 +196,7 @@ void SystemClock_Config(void) {
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         /* Initialization Error */
-        while (1)
+        while (1){}
             ;
     }
 
@@ -200,7 +210,7 @@ void SystemClock_Config(void) {
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
         /* Initialization Error */
-        while (1)
+        while (1){}
             ;
     }
 }
