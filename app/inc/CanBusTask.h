@@ -68,13 +68,6 @@ static uint8_t CANframeLength = sizeof(beginCANFrame) + (RM_DLC) * 8 + sizeof(en
 void StartCANTxTask(void* argument);
 void StartCANRxTask(void* argument);
 
-extern osPoolId can_rx_mpool;
-extern osPoolId can_tx_mpool;
-
-extern osMessageQId outputQueueChassis; 
-extern osMessageQId inputQueueChassis; 
-
-
 
 osThreadDef(StartCANTxTask, osPriorityNormal, 3, 0, 128 * 4);
 osThreadDef(StartCARRxTask, osPriorityNormal, 3, 0, 128 * 4);
