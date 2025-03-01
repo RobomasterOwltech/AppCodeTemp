@@ -1,22 +1,27 @@
 #include "cmsis_os.h"
-#include "robotconfig/inc/spi.h"
-//esta llamada no existe pero cuando me mezcle por la branch puede que no haya problema
+#include "spi.h"
 
 
-float vel_x, float vel_y, float vel_z; //velocidad variables
-float acce_x,float acce_y,float acce_z; //aceleracion variables
-float gir_x, float gir_y, float gir_z; //giroscopio variable
+typedef struct {
+    SPI_HandleTypeDef* spiHandle; 
+    GPIO_TypeDef* csPort;         
+    uint16_t csPin;  
+} SPI_Config;
+uint8_t buffer[40];
+float vel_x,  vel_y,  vel_z; //velocidad variables
+float acce_x, acce_y, acce_z; //aceleracion variables
+float gir_x, gir_y,  gir_z; //giroscopio variable
 
 
-//---------------------------------------------------------------
-//la cosa  del semaforo que debo implementar
+/*---------------------------------------------------------------*/
+/*la cosa  del semaforo que debo implementar*/
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c);
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c);
 
 static void Task1(void *argument);
 
-//-------------------------------------------------------------------------
+//*-----------------------------------------------------------------------*/
 
 
  //Funciones para manejar SPI y datos del robot
@@ -26,41 +31,20 @@ void SPI_WriteSensor(SPI_HandleTypeDef *hspi, uint8_t *data, uint16_t len);  // 
 
 
 //Declaracion de funciones de SPI
-int16_t INU_ReadResgister16(uinit8_t reg);
+int16_t INU_ReadResgister16(uint8_t reg);
 
-void ProcesarDatos(){
-
-//leer datos del acelerometro
-int16_t acce_x= IMU_ReadREegister16(0x3B); //Eje X
-int16_t ay= IMU_ReadREegister16(0x3D); //Eje y
-int16_t az= IMU_ReadREegister16(0x3F); //Eje z
-
-//leer datos del giroscopio
-int16_t gir_x= IMU_ReadREegister16(0x43); //Eje X
-int16_t gir_y= IMU_ReadREegister16(0x45); //Eje y
-int16_t gir_z= IMU_ReadREegister16(0x47); //Eje z
-
-//convertir los datos a unidade fisicas
-float x1g= ax * (9.81f / 16384.0f);
-float y1g= ay * (9.81f / 16384.0f);
-float z1g= az * (9.81f / 16384.0f);
-//quedan pendiente de asignacion para su uso 
-float x2g= gx * (9.81f / 16384.0f);
-float y2g= gy * (9.81f / 16384.0f);
-float z2g= gz * (9.81f / 16384.0f);
-
-
-}; // Calcular velocidad y aceleración
+ // Calcular velocidad y aceleración
 
 
 //a lo que invesige el metodo de conseguir los datos 
 void ReadData(float *x1, float *y1, float *z1, 
     float *x2, float *y2, float *z2) {
-uint8_t buffer[40];
+//si falla lo de 0x02 probar poner command que esta declarado arriba
+
 uint8_t command = 0x02;
-SPI_Transfer(&robotConfig, command);
+SPI_Transfer(&hspi2, 0x02); //aqui dice ques no esta definido
 for (int i = 0; i < 40; i++) {
-buffer[i] = SPI_Transfer(&SPI1_Config, 0x00);
+buffer[i] = SPI_Transfer(&hspi2, 0x00);
 }
 *x1 = *((float*)&buffer[0]);
 *y1 = *((float*)&buffer[4]);
