@@ -7,7 +7,15 @@
  *  Reference: https://www.youtube.com/watch?v=KHNRftBa1Vc
  */
 
-#pragma once
+#ifndef CANBUSTASK_H
+#define CANBUSTASK_H
+
+#include "CanBusTask.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <string.h>
 
 #include "CommunicationStructs.h"
 #include "RobomasterCanProtocol.h"
@@ -15,7 +23,6 @@
 #include "cmsis_os.h"
 #include "main.h"
 #include "semphr.h"
-
 // =======================================================
 // Robomaster protocol
 // =======================================================
@@ -38,43 +45,32 @@
 // See https://www.gnu.org/software/c-intro-and-ref/manual/html_node/Packed-Structures.html
 
 #pragma pack(push, 1)
-    typedef struct {
+typedef struct {
+    uint8_t SOF : 1;
+    uint16_t ID : 11;
+    uint8_t RTR : 1;
+    uint8_t Reserved : 1;
+    uint8_t DLC : 4;
+} beginCANFrame;
 
-        uint8_t SOF : 1;
-        uint16_t ID : 11;
-        uint8_t RTR : 1;
-        uint8_t Reserved : 1;
-        uint8_t DLC : 4;
-    } beginCANFrame;
-
-    typedef struct {
-        // TODO: Check what is CRC_TypeDef
-        uint16_t CRC_ : 15;
-        uint8_t CRCDeliter : 1;
-        uint8_t Ack : 1;
-        uint8_t AckDelimiter : 1;
-        uint8_t EOF : 7;
-    } endCANFrame;
+typedef struct {
+    // TODO: Check what is CRC_TypeDef
+    uint16_t CRC_ : 15;
+    uint8_t CRCDeliter : 1;
+    uint8_t Ack : 1;
+    uint8_t AckDelimiter : 1;
+    uint8_t EOF : 7;
+} endCANFrame;
 #pragma pack(pop)
 
-static uint8_t CANframeLength = sizeof(beginCANFrame) + (RM_DLC) * 8 + sizeof(endCANFrame);
+// static uint8_t CANframeLength = sizeof(beginCANFrame) + (RM_DLC) * 8 + sizeof(endCANFrame);
 
 // =======================================================
 
 // =======================================================
 // Communication structs
 // =======================================================
-
-void StartCANTxTask(void* argument);
-void StartCANRxTask(void* argument);
-
-
-osThreadDef(StartCANTxTask, osPriorityNormal, 3, 0, 128 * 4);
-osThreadDef(StartCARRxTask, osPriorityNormal, 3, 0, 128 * 4);
-
-void StartCANRxTask(void* argument);
-
-void StartCANTxTask(void* argument);
+void CANBusThread(void const* argument);
 
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan);
 
@@ -85,6 +81,22 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan);
 // =======================================================
 
 /*
+CAN Interrupts
+    CAN_IT_TX_MAILBOX_EMPTY     || Transmit mailbox empty interrupt
+    CAN_IT_RX_FIFO0_MSG_PENDING || FIFO 0 message pending interrupt
+    CAN_IT_RX_FIFO0_FULL        || FIFO 0 full interrupt
+    CAN_IT_RX_FIFO0_OVERRUN     || FIFO 0 overrun interrupt
+    CAN_IT_RX_FIFO1_MSG_PENDING || FIFO 1 message pending interrupt
+    CAN_IT_RX_FIFO1_FULL        || FIFO 1 full interrupt
+    CAN_IT_RX_FIFO1_OVERRUN     || FIFO 1 overrun interrupt
+    CAN_IT_WAKEUP               || Wake-up interrupt
+    CAN_IT_SLEEP_ACK            || Sleep acknowledge interrupt
+    CAN_IT_ERROR_WARNING        || Error warning interrupt
+    CAN_IT_ERROR_PASSIVE        || Error passive interrupt
+    CAN_IT_BUSOFF               || Bus-off interrupt
+    CAN_IT_LAST_ERROR_CODE      || Last error code interrupt
+    CAN_IT_ERROR                || Error Interrupt
+
 static uint8_t rxData[RM_DLC];
 static uint8_t txData[RM_DLC];
 
@@ -129,3 +141,9 @@ file:///Users/jperezch/Downloads/um2217-description-of-stm32h7-hal-and-lowlayer-
       (+) HAL_CAN_GetRxFifoFillLevel       : Return Rx FIFO fill level
 
 */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* CANBUSTASK_H */

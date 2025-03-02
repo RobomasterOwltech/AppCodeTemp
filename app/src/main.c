@@ -17,7 +17,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-#include "CANTask.h"
+#include "CanBusTask.h"
 #include "gpio.h"
 #include "tim.h"
 #include "usart.h"
@@ -45,23 +45,16 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 
-typedef enum { THREAD_1 = 0, THREAD_2 } Thread_TypeDef;
+typedef enum { THREAD_Blink = 0, THREAD_CAN } Thread_TypeDef;
 
 osThreadId LEDThread1Handle;
-osThreadId canTxHandle;
-osThreadId canRxHandle;
+osThreadId canTaskHandle;
 
+// Sample task
+// NOTE: We use static so it is not referenced anywhere else.
+// Kinda like a private
 static void BlinkyThread(void const* argument);
 
-/*-----------------------------------------------------------*/
-// osThreadId_t defaultTaskHandle;
-// const osThreadAttr_t defaultTask_attributes = {
-//     .name = "BlinkyThread",
-//     .stack_size = 128 * 4,
-//     .priority = (osPriority_t)osPriorityNormal,
-// };
-// void BlinkyThread(void* argument);
-/*-----------------------------------------------------------*/
 static void BlinkyThread(void const* argument) {
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     while (1) {
@@ -94,15 +87,12 @@ int main(void) {
     MX_USART2_UART_Init();
     MX_CAN_Init();
 
-    // Initialize the kernel
-    osKernelInitialize();
-
     // Create CANTask
-    osThreadId CANTxTaskHandle;
-    osThreadId CANRxTaskHandle;
+    osThreadDef(THREAD_Blink, BlinkyThread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
+    osThreadDef(THREAD_CAN, CANBusThread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE * 4);
 
-    CANTxTaskHandle = osThreadCreate(osThread(Thread), NULL);
-    CANRxTaskHandle = osThreadCreate(osThread(Thread), NULL);
+    LEDThread1Handle = osThreadCreate(osThread(THREAD_Blink), NULL);
+    canTaskHandle = osThreadCreate(osThread(THREAD_CAN), NULL);
     // Start the RTOS kernel
     osKernelStart();
 
