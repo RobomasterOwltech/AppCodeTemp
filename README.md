@@ -9,6 +9,7 @@ Template to create FreeRTOS tasks using the team's middleware
 2. Go into the newly generated directory `cd AppCodeTemp`
 1. Download the submodules `git submodule init && git submodule update`
 1. In case any of the dependencies needs to be updated, simply do: `git submodule update --remote`
+1. Open it in Visual Studio `code .`
 
 ## Having problems with git?:
 
