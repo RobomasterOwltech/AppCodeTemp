@@ -1,70 +1,40 @@
-#include <FreeRTOS.h>
-#include <task.h>
-#include <queue.h>
-#include <Nucleo_F767ZI_GPIO.h>
-#include <SEGGER_SYSVIEW.h>
-#include <Nucleo_F767ZI_Init.h>
-#include <stm32f7xx_hal.h>
-#include <UartQuickDirtyInit.h>
-#include "Uart4Setup.h"
+#include <stm32f3xx_hal.h>
+#include <stm32f3xx_it.h>
+#include <string.h>
 
-// Exportar los setups necesarios para que funcione
+#include "cmsis_os.h"
+#include "usart.h"
 
+uint8_t UART1_rxBuffer[12];
+UART_HandleTypeDef uart;
+osMessageQId remoteQueue;
+osMessageQDef(remoteQueue, 16, unsigned int);
 
+#pragma pack(push, 1)
+struct control_data {
+    uint8_t joystickA;
+    uint8_t joystickB;
+    uint8_t knobA;
+    uint8_t knobB;
+    uint8_t switchA;
+    uint8_t switchB;
+    uint8_t switchC;
+    uint8_t switchD;
+} control_data;
+#pragma pack(pop)
 
-void polledUartReceive ( void* NotUsed ); // void not used?
-void uartPrintOutTask( void* NotUsed); // void not used? 
+void UART_Init(void) {}
 
-static QueueHandle_t uart2_BytesReceived = NULL;
-
-int main(void)
-{
-	HWInit();
-	SetupUart4ExternalSim(9600);
-	SEGGER_SYSVIEW_Conf();
-	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-
-	assert_param(xTaskCreate(polledUartReceive, "polledUartRx", STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL) == pdPASS);
-	assert_param(xTaskCreate(uartPrintOutTask, "uartPrintTask", STACK_SIZE, NULL, tskIDLE_PRIORITY + 3, NULL) == pdPASS);
-
-	uart2_BytesReceived = xQueueCreate(10, sizeof(char));
-
-
-// porque esta comentado?
-//	for(int i = 0; i < 10; i++)
-//	{
-//		UART4->TDR = i;
-//		while(!(UART4->ISR & USART_ISR_TXE));
-//	}
-	//start the scheduler - shouldn't return unless there's a problem
-	vTaskStartScheduler();
-
-	while(1)
-	{
-	}
+void UART_Task(void* argument) {
+    HAL_UART_Receive_IT(&uart, UART1_rxBuffer, 12);
+    remoteQueue = osMessageCreate(osMessageQ(remoteQueue), NULL);
+    for (;;) {
+    }
 }
 
-void uartPrintOutTask( void* NotUsed)
-{
-	char nextByte;
-
-	while(1)
-	{
-		xQueueReceive(uart2_BytesReceived, &nextByte, portMAX_DELAY);
-		SEGGER_SYSVIEW_PrintfHost("%c", nextByte); //Donde lo esta imprimiendo?
-	}
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* uart) {
+    HAL_UART_Receive_IT(uart, UART1_rxBuffer, 12);
+    memcpy(&control_data, &UART1_rxBuffer, sizeof(control_data));
+    osMessagePut(remoteQueue, (unsigned int)&control_data, osWaitForever);
+    HAL_UART_Transmit(uart, (uint8_t*)"\n\nSent from ISR\n\n", 17, 500);
 }
-
-// Como funciona esto?
-void polledUartReceive( void* NotUsed )
-{
-	uint8_t nextByte;
-	STM_UartInit(USART2, 9600, NULL, NULL);
-	while(1)
-	{
-		while(!(USART2->ISR & USART_ISR_RXNE_Msk));
-		nextByte = USART2->RDR;
-		xQueueSend(uart2_BytesReceived, &nextByte, 0);
-	}
-}
-
