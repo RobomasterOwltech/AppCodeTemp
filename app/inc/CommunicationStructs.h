@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "main.h"
 #include "cmsis_os.h"
+#include "main.h"
 
 /**
  * @brief Represents a CAN bus message splitted into the velocity
@@ -35,10 +35,27 @@ typedef struct {
     uint8_t vMotor_pitch;
 } GimballControlMessage;
 
+/**
+ * @brief Represents a Control Data Message
+ */
+#pragma pack(push, 1)
+typedef struct control_data {
+    uint8_t joystickA;
+    uint8_t joystickB;
+    uint8_t knobA;
+    uint8_t knobB;
+    uint8_t switchA;
+    uint8_t switchB;
+    uint8_t switchC;
+    uint8_t switchD;
+} control_data;
+#pragma pack(pop)
 
-// Message queues from protocols 
+// Message queues from protocols
 extern osPoolId can_rx_mpool;
 extern osPoolId can_tx_mpool;
 
-extern osMessageQId outputQueueChassis; 
-extern osMessageQId inputQueueChassis; 
+extern osMessageQId outputQueueChassis;
+extern osMessageQId inputQueueChassis;
+
+extern osMessageQId remoteQueue;
