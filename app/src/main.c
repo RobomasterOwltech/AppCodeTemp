@@ -41,28 +41,25 @@
 /* Private macro -------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
+osMessageQId imuQueue;  // Declare the imuQueue variable
 
 /* Private function prototypes -----------------------------------------------*/
-
-typedef enum { THREAD_1 = 0, THREAD_2 } Thread_TypeDef;
+void SystemClock_Config(void);
+typedef enum { THREAD_ID_1 = 0, THREAD_ID_2 = 1, TASK1_ID = 2 } Thread_TypeDef;
+void Task_ProcessIMUData(void const* argument);  // Add this line to declare the function
 
 osThreadId LEDThread1Handle;
 osThreadId tid_thread1;
 osThreadId tid_thread2;
+osThreadId tid_task1;
 osThreadId id1;
 
-osSemaphoreId semaphore;    // Semaphore ID
-osSemaphoreDef(semaphore);  // Semaphore definition
-
-void SystemClock_Config(void);
 static void BlinkyThread(void const* argument);
-void thread1(void const* argument);
-void thread2(void const* argument);
+static void thread1(void const* argument);
+static void thread2(void const* argument);
+// static void Task1(void const* argument);  // por si acaso
 
-/* Definición de la macro osThreadDef */
-#define osThreadDef(name, priority, instances, stacksz) \
-    const osThreadDef_t os_thread_def_##name = {        \
-        .name = #name, .pthread = name, .tpriority = priority, .instances = instances, .stacksize = stacksz}
+// Definición de la macro osThreadDef
 
 /*-----------------------------------------------------------*/
 // osThreadId_t defaultTaskHandle;
@@ -103,6 +100,15 @@ static void BlinkyThread(void const* argument) {
  * @retval int
  */
 
+/* Definición de los hilos */
+// el compilador no reconoce la macro
+osThreadDef(THREAD_ID_1, thread1, osPriorityHigh, 1, 128);    // Define el hilo thread1
+osThreadDef(THREAD_ID_2, thread2, osPriorityNormal, 1, 128);  // Define el hilo thread2
+osThreadDef(TASK1_ID, Task1, osPriorityNormal, 1, 128);       // Define el hilo Task1
+
+osSemaphoreId semaphore;    // Semaphore ID
+osSemaphoreDef(semaphore);  // Semaphore definition
+
 void thread1(void const* argument) {
     int32_t value;
     while (1) {
@@ -117,19 +123,20 @@ void thread1(void const* argument) {
 }
 
 // thread 2 - Normal Priority - looks for a free semaphore and uses the resource whenever it is available
-
 void thread2(void const* argument) {
     while (1) {
         osSemaphoreWait(semaphore, osWaitForever);  // Esperar indefinidamente por el semáforo
                                                     // Usar el recurso aquí
-        osSemaphoreRelease(semaphore);  // Liberar el semáforo
+        osSemaphoreRelease(semaphore);              // Liberar el semáforo
     }
 }
-
-/* Definición de los hilos */
-osThreadDef(thread1, osPriorityHigh, 1, 128);
-osThreadDef(thread2, osPriorityNormal, 1, 128);
-osThreadDef(Task1, osPriorityNormal, 1, 128);
+void Task_ProcessIMUData(void const* argument) {
+    // Implement the task to process IMU data here
+    while (1) {
+        // Process IMU data
+        osDelay(100);  // Adjust the delay as necessary
+    }
+}
 
 int main(void) {
     /* MCU Configuration--------------------------------------------------------*/
@@ -149,15 +156,25 @@ int main(void) {
     MX_USART2_UART_Init();
     MX_SPI1_Init();  // lo copie directo spi.c esta declarado como una funcion ahi pero dice que no esta definida
 
+    MX_SPI1_Init();
     osKernelInitialize();
-    semaphore = osSemaphoreCreate(osSemaphore(semaphore), 1);
 
-    SPI_Config();
+    /* Creación de los hilos */
+    tid_thread1 = osThreadCreate(osThread(THREAD_ID_1), NULL);  // Crea el hilo thread1
+    tid_thread2 = osThreadCreate(osThread(THREAD_ID_2), NULL);  // Crea el hilo thread2
+    tid_task1 = osThreadCreate(osThread(TASK1_ID), NULL);       // Crea el hilo Task1
 
-    /*Crear los hilos */
-    tid_thread1 = osThreadCreate(osThread(thread1), NULL);
-    tid_thread2 = osThreadCreate(osThread(thread2), NULL);
-    osThreadId id1 = osThreadCreate(osThread(Task1), NULL);
+    // ahora toca la cola
+    //  Inicializar la cola
+    osMessageQDef(QUEUE_SIZE, 16, uint32_t);  // Define the message queue
+    imuQueue = osMessageCreate(osMessageQ(QUEUE_SIZE), NULL);
+    if (imuQueue == NULL) {
+        // Manejar el error si la cola no se pudo crear
+    }
+
+    // Crear la tarea para procesar los datos del IMU
+    osThreadDef(Task_ProcessIMUData, Task_ProcessIMUData, osPriorityNormal, 0, 128);
+    osThreadCreate(osThread(Task_ProcessIMUData), NULL);
 
     osKernelStart();  // Iniciar el scheduler del RTOS v1
     // This is a fake comment, delete
