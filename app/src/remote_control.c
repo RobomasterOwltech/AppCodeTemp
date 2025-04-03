@@ -15,18 +15,21 @@ osMessageQDef(remoteQueue, 16, unsigned int);
 void UART_Init(void) {}
 
 void sbus_translate(control_data* _control, uint8_t* _buffer) {
-    _control->joystickA = (_buffer[0] >> 1) & 0x7F;                                 // 7bits
-    _control->joystickB = ((_buffer[0] & 0x01) << 6) | ((_buffer[1] >> 2) & 0x3F);  // 7bits
-    _control->switchA = (_buffer[1] >> 1) & 0x01;                                   // 2bits
-    _control->switchB = _buffer[1] & 0x01;                                          // 2bits
-    _control->switchC = (_buffer[2] >> 6) & 0x03;                                   // 4bits
-    _control->switchD = (_buffer[2] >> 4) & 0x03;                                   // 4bits
-    _control->knobA = _buffer[3];                                                   // 8bits
-    _control->knobB = _buffer[4];                                                   // 8bits
+    _control->joystickAx = ((_buffer[1] >> 3) | (_buffer[2] << 5)) & 0xff;
+    _control->joystickAy = ((_buffer[2] >> 6) | (_buffer[3] << 2) | (_buffer[4] << 10)) & 0xff;
+    _control->joystickBx = ((_buffer[4] >> 1) | (_buffer[5] << 7)) & 0x0ff;
+    _control->joystickBy = ((_buffer[5] >> 1) | (_buffer[6] << 7)) & 0x0ff;
+    _control->knobA = ((_buffer[6] >> 7) | (_buffer[7] << 1)) & 0xff;
+    _control->knobB = ((_buffer[7]) | (_buffer[8])) & 0xff;
+    _control->switchA = (_buffer[9] & 0x07) >> 2;
+    _control->switchB = (_buffer[10] & 0x20) >> 5;
+    _control->switchC = ((_buffer[12] >> 3) & 0x03);
+    _control->switchD = ((_buffer[13] & 0x08) >> 3);
 }
 
 void UART_Task(void* argument) {
     HAL_UART_Receive_IT(&huart1, &UART1_rxBuffer, 12);
+    osPoolDef(remote_pool, 16, control_data);
     remoteQueue = osMessageCreate(osMessageQ(remoteQueue), NULL);
     for (;;) {
         sbus_translate(&control1, &UART1_rxBuffer);
