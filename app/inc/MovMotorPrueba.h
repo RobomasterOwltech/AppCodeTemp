@@ -1,34 +1,24 @@
-#include "CanBusTask.h"
+#include "main.h"
+    #include "cmsis_os.h"
+    #include "robotConfig.h" // Asegúrate de incluir el archivo donde se define htim3
 
-void StartCANTxTask(void* argument) {
-    uint8_t speed = 0; // Velocidad inicial
-    CAN_TxHeaderTypeDef txHeader;
-    uint8_t txData[8] = {0}; // Datos CAN (8 bytes)
-    uint32_t txMailbox;
+    extern TIM_HandleTypeDef htim3; // Declaración del temporizador existente
 
-    // Configurar el encabezado del mensaje CAN
-    txHeader.StdId = CONTROL_ID_1FF; // ID del motor
-    txHeader.RTR = CAN_RTR_DATA;
-    txHeader.IDE = CAN_ID_STD;
-    txHeader.DLC = RM_DLC; // Longitud de datos (8 bytes)
+    void StartPWMTxTask(void* argument) {
+        uint32_t dutyCycle = 0; // Ciclo de trabajo inicial (0%)
 
-    for (;;) {
-        // Incrementar la velocidad
-        speed += 10; // Incremento de 10 unidades por segundo
-        if (speed > 255) speed = 0; // Reiniciar si supera el máximo
+        // Iniciar el PWM en el canal 1 del temporizador 3
+        HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
-        // Configurar los datos del mensaje
-        txData[0] = speed; // Velocidad en el primer byte
-        for (int i = 1; i < 8; i++) {
-            txData[i] = 0; // Rellenar con ceros
+        for (;;) {
+            // Incrementar el ciclo de trabajo
+            dutyCycle += 100; // Incremento de 10% (100/1000)
+            if (dutyCycle > 1000) dutyCycle = 0; // Reiniciar si supera el 100%
+
+            // Actualizar el ciclo de trabajo
+            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, dutyCycle);
+
+            // Esperar 1 segundo
+            osDelay(1000);
         }
-
-        // Enviar el mensaje CAN
-        if (HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox) != HAL_OK) {
-            // Manejar error de transmisión
-        }
-
-        // Esperar 1 segundo
-        osDelay(1000);
     }
-}
