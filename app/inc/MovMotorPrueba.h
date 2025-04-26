@@ -2,7 +2,6 @@
 
 // Prueba de mover el motor, aumenta la velocidad cada segundo
 
-
 void StartCANTxTask(void* argument) {
     uint8_t speed = 0; // Velocidad inicial
     CAN_TxHeaderTypeDef txHeader;
